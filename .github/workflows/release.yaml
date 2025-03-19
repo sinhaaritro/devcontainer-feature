@@ -1,21 +1,39 @@
-name: Publish Dev Container Feature
+name: Publish DevContainer Feature
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+    paths:
+      - 'src/**'  # Trigger only when src/ changes
 
 jobs:
-  publish:
+  publish-feature:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    permissions:
+      contents: read
+      packages: write  # Required for GHCR write access
 
-      - name: Publish Feature
-        uses: devcontainers/action@v1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          publish-features: "true"
-          base-path-to-features: "./src"
+          node-version: '20'  # Matches your local Node.js v20.19.0
+
+      - name: Install devcontainer CLI
+        run: npm install -g @devcontainers/cli
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Publish DevContainer Feature
+        run: devcontainer features publish -r ghcr.io -n sinhaaritro/devcontainer-feature ./src
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_CONFIG: ~/.docker  # Ensure CLI uses Docker credentials
+
+      - name: Debug Output (if needed)
+        if: failure()
+        run: devcontainer features publish -r ghcr.io -n sinhaaritro/devcontainer-feature ./src --log-level debug
