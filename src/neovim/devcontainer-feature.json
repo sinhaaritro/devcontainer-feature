@@ -1,0 +1,21 @@
+{
+  "id": "neovim",
+  "name": "Neovim in Devcontainer",
+  "version": "1.0.0",
+  "description": "Installs Neovim on Debian-based images using git.",
+  "options": {
+    "version": {
+      "type": "string",
+      "default": "latest",
+      "description": "Neovim version to install (e.g., '0.10.0' or 'latest')"
+    },
+    "skipUpdate": {
+      "type": "boolean",
+      "default": false,
+      "description": "Skip running apt-get update before installation (default: false)"
+    }
+  },
+  "containerEnv": {
+    "EDITOR": "nvim"
+  }
+}
