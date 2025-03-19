@@ -1,6 +1,7 @@
 name: Publish DevContainer Feature
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
