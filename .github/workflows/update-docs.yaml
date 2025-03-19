@@ -1,0 +1,76 @@
+name: Update Documentation
+
+on:
+  workflow_dispatch:                     # Allows manual triggering
+  workflow_run:                         # Triggers after another workflow
+    workflows: ["Publish DevContainer Feature"]  # Name of the publishing workflow
+    branches:
+      - main
+    types:
+      - completed                       # Runs after the workflow completes (success, failure, etc.)
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    environment: documentation           # Optional: keep if you use environments
+    permissions:
+      contents: write                     # Needed to commit changes
+      pull-requests: write                # Needed to create a PR
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'               # Matches your earlier Node.js version
+
+      - name: Install DevContainer CLI
+        run: npm install -g @devcontainers/cli
+
+      - name: Generate Documentation
+        uses: devcontainers/action@v1
+        with:
+          generate-docs: "true"
+          base-path-to-features: "./src"    # Path to your feature source
+
+      - name: Create a PR for Documentation
+        id: push_docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}  # Use your classic PAT with repo scope
+        run: |
+          set -e
+          echo "Starting documentation update..."
+
+          # Configure git
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "github-actions"
+          git config pull.rebase false
+
+          # Create a new branch
+          branch="automated-docs-update-$GITHUB_RUN_ID"
+          git checkout -b "$branch"
+          message="Automated documentation update"
+
+          # Add and commit generated docs
+          git add */**/README.md
+          git commit -m "$message [skip ci]" || export NO_UPDATES=true
+
+          # Push and create PR if there are changes
+          if [ "$NO_UPDATES" != "true" ]; then
+            git push origin "$branch"
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              /repos/${GITHUB_REPOSITORY}/pulls \
+              -f title="$message" \
+              -f body="$message" \
+              -f head="$branch" \
+              -f base="main"
+          else
+            echo "No documentation updates to commit."
+          fi
