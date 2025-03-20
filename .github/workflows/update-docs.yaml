@@ -1,21 +1,21 @@
 name: Update Documentation
 
 on:
-  workflow_dispatch:                     # Allows manual triggering
-  workflow_run:                         # Triggers after another workflow
-    workflows: ["Publish DevContainer Feature"]  # Name of the publishing workflow
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Publish DevContainer Feature"]
     branches:
-      - main
+      - master
     types:
-      - completed                       # Runs after the workflow completes (success, failure, etc.)
+      - completed
 
 jobs:
   generate:
     runs-on: ubuntu-latest
-    environment: documentation           # Optional: keep if you use environments
+    environment: documentation
     permissions:
-      contents: write                     # Needed to commit changes
-      pull-requests: write                # Needed to create a PR
+      contents: write
+      pull-requests: write
     if: |
       github.event_name == 'workflow_dispatch' || 
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
@@ -26,7 +26,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'               # Matches your earlier Node.js version
+          node-version: '20'
 
       - name: Install DevContainer CLI
         run: npm install -g @devcontainers/cli
@@ -35,12 +35,12 @@ jobs:
         uses: devcontainers/action@v1
         with:
           generate-docs: "true"
-          base-path-to-features: "./src"    # Path to your feature source
+          base-path-to-features: "./src"
 
       - name: Create a PR for Documentation
         id: push_docs
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}  # Use your classic PAT with repo scope
+          GITHUB_TOKEN: ${{ secrets.PAT }}
         run: |
           set -e
           echo "Starting documentation update..."
@@ -49,6 +49,10 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "github-actions"
           git config pull.rebase false
+
+          # Get the default branch dynamically
+          DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
+          echo "Default branch is: $DEFAULT_BRANCH"
 
           # Create a new branch
           branch="automated-docs-update-$GITHUB_RUN_ID"
@@ -70,7 +74,7 @@ jobs:
               -f title="$message" \
               -f body="$message" \
               -f head="$branch" \
-              -f base="main"
+              -f base="$DEFAULT_BRANCH"
           else
             echo "No documentation updates to commit."
           fi
