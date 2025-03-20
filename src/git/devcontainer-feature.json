@@ -1,0 +1,18 @@
+{
+  "id": "git",
+  "name": "Git in Devcontainer",
+  "version": "1.0.0",
+  "description": "Installs Git using the OS package manager with version and update options.",
+  "options": {
+    "version": {
+      "type": "string",
+      "default": "latest",
+      "description": "Git version to install (e.g., 'latest' or specific version)"
+    },
+    "skipUpdate": {
+      "type": "boolean",
+      "default": false,
+      "description": "Skip package manager update to speed up installation"
+    }
+  }
+}
